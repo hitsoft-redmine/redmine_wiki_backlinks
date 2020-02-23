@@ -22,7 +22,7 @@ class WikiLink < ActiveRecord::Base
   end
 
   def self.add_from_page(wiki, page, content)
-    linked_pages = collect_links(content.text)
+    linked_pages = collect_links(wiki.project.identifier, content.text)
     linked_pages.each do |p|
       link = WikiLink.new(:wiki => wiki,
                           :page => page,
@@ -35,17 +35,24 @@ class WikiLink < ActiveRecord::Base
     page.links_from.destroy_all
   end
 
-  def self.collect_links(text)
+  def self.collect_links(project, text)
     # Returns a set with the page names for all the local links in the text.
     # Based on redmine/app/helper/application_helper.rb#parse_wiki_links
 
     set_pages = Set.new
-    text.scan(/(!)?(\[\[([^\]\n\|]+)(\|([^\]\n\|]+))?\]\])/) do |m|
-      esc, all, page, title = $1, $2, $3, $5
+    text.scan(/(!)?(\[\[([^\]\n\|]+)(\|([^\]\n\|]+))?\]\]|{{h1\(([^\)\n]+)\)}})/) do |m|
+      esc, all, page, title, pageh1 = $1, $2, $3, $5, $6
       if esc.nil?
+        page = page || pageh1
+
         if page =~ /^([^\:]+)\:(.*)$/
-          # Skip cross-project links
-          next
+          prj, title = $1, $2
+          if prj.downcase != project.downcase
+            # Skip cross-project links
+            next
+          else
+            page = titleª
+          end
         end
 
         # extract anchor
@@ -57,7 +64,6 @@ class WikiLink < ActiveRecord::Base
         set_pages.add(page)
       end
     end
-
     set_pages
   end
 end
