@@ -51,7 +51,7 @@ class WikiLink < ActiveRecord::Base
             # Skip cross-project links
             next
           else
-            page = titleª
+            page = title
           end
         end
 
